@@ -1,24 +1,57 @@
 import { getPost } from "@/lib/github";
 import { MDXRemote } from "next-mdx-remote/rsc";
 import matter from "gray-matter";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 
-export default async function Post({ params }: { params: { slug: string } }) {
+interface Props {
+  params: Promise<{ slug: string }>;
+}
+
+export default async function Post({ params }: Props) {
   try {
-    const raw = await getPost(params.slug);
+    const { slug } = await params;
+    const raw = await getPost(slug);
     const { content, data } = matter(raw);
 
     return (
-      <article className="max-w-3xl mx-auto px-6 py-20">
-        <header className="mb-10 pb-10 border-b border-zinc-100 dark:border-zinc-800">
-          <h1 className="text-3xl sm:text-4xl font-bold mb-4">{data.title}</h1>
-          <time className="text-zinc-400 font-mono text-sm">{data.date && new Date(data.date).toLocaleDateString()}</time>
+      <article className="py-10">
+        {/* 返回按钮 */}
+        <Link 
+          href="/blog" 
+          className="inline-flex items-center text-sm text-muted hover:text-foreground mb-8 transition-colors group"
+        >
+          <ArrowLeft size={16} className="mr-1 group-hover:-translate-x-1 transition-transform" />
+          Back
+        </Link>
+
+        {/* 文章头部 */}
+        <header className="mb-10">
+          <h1 className="text-3xl font-bold tracking-tight mb-3 text-foreground">
+            {data.title}
+          </h1>
+          <div className="flex items-center gap-3 text-sm text-muted font-mono">
+            <time dateTime={data.date}>
+              {new Date(data.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+            </time>
+            {/* 如果有标签可以加在这里 */}
+          </div>
         </header>
-        <div className="prose prose-zinc dark:prose-invert max-w-none">
+
+        {/* 正文 - 使用 prose-zinc 实现灰度排版 */}
+        <div className="prose prose-zinc dark:prose-invert max-w-none 
+          prose-headings:font-semibold prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline
+          prose-img:rounded-lg prose-pre:bg-zinc-100 dark:prose-pre:bg-zinc-900 prose-pre:border prose-pre:border-border">
           <MDXRemote source={content} />
         </div>
       </article>
     );
   } catch (e) {
-    return <div className="text-center py-20">Post not found</div>;
+    return (
+      <div className="py-20 text-center">
+        <p className="text-muted">Post not found or GitHub API limit reached.</p>
+        <Link href="/" className="mt-4 text-sm underline">Go Home</Link>
+      </div>
+    );
   }
 }
